@@ -5,6 +5,8 @@ interface InfoPanelProps {
   hotspotData: TownHotspotData[];
   selectedTownName: string | null;
   onSelectTown: (townName: string | null) => void;
+  selectedCountyName: string | null;
+  onSelectCounty: (countyName: string | null) => void;
 }
 
 const SeverityBar: React.FC<{ level: number }> = ({ level }) => {
@@ -12,7 +14,7 @@ const SeverityBar: React.FC<{ level: number }> = ({ level }) => {
   const color = level > 7 ? 'bg-red-600' : level > 4 ? 'bg-yellow-500' : 'bg-green-500';
 
   return (
-    <div className="w-full bg-gray-700 rounded-full h-2.5">
+    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
       <div className={`${color} h-2.5 rounded-full`} style={{ width: `${widthPercentage}%` }}></div>
     </div>
   );
@@ -37,64 +39,70 @@ const SearchIcon: React.FC<{ className?: string }> = ({ className }) => (
 );
 
 
-export const InfoPanel: React.FC<InfoPanelProps> = ({ hotspotData, selectedTownName, onSelectTown }) => {
+export const InfoPanel: React.FC<InfoPanelProps> = ({ hotspotData, selectedTownName, onSelectTown, selectedCountyName, onSelectCounty }) => {
   const selectedTownData = hotspotData.find(t => t.townName === selectedTownName);
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredHotspots = useMemo(() => {
-    const sortedData = [...hotspotData].sort((a, b) => b.severity - a.severity);
+    let data = [...hotspotData];
+
+    if (selectedCountyName) {
+      data = data.filter(town => town.countyName === selectedCountyName);
+    }
+    
+    const sortedData = data.sort((a, b) => b.severity - a.severity);
     if (!searchTerm) {
       return sortedData;
     }
     return sortedData.filter(town =>
       town.townName.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [hotspotData, searchTerm]);
+  }, [hotspotData, searchTerm, selectedCountyName]);
 
   return (
-    <div className="w-full bg-gray-800 text-gray-200 p-4 overflow-y-auto h-full rounded-lg lg:rounded-l-none shadow-2xl">
-      <h2 className="text-2xl font-bold text-red-400 mb-4 border-b-2 border-red-400 pb-2">Security Hotspots</h2>
+    <div className="w-full bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 p-4 overflow-y-auto h-full rounded-lg lg:rounded-l-none shadow-2xl">
+      <h2 className="text-2xl font-bold text-red-500 dark:text-red-400 mb-4 border-b-2 border-red-500 dark:border-red-400 pb-2">Security Hotspots</h2>
       
-      {!selectedTownData && (
-         <div className="text-center text-gray-400 my-4">
-            <p className="mb-4">Click on a town in the list or a marker on the map to view details.</p>
+      {!selectedTownData && !selectedCountyName && (
+         <div className="text-center text-gray-500 dark:text-gray-400 my-4">
+            <p className="mb-4">Click on a town, or a county on the map to view details.</p>
             <p className="text-sm">The following urban areas have been identified by AI as having significant security concerns.</p>
         </div>
       )}
 
       {selectedTownData && (
-        <div className="bg-gray-900 p-4 rounded-lg mb-6 animate-fade-in">
+        <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg mb-6">
           <div className="flex justify-between items-center">
             <div>
-                <h3 className="text-xl font-semibold text-white">{selectedTownData.townName}</h3>
-                <p className="text-sm text-gray-400">{selectedTownData.countyName} County</p>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{selectedTownData.townName}</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{selectedTownData.countyName} County</p>
             </div>
-            <button onClick={() => onSelectTown(null)} className="text-gray-400 hover:text-white text-2xl font-bold">&times;</button>
+            <button onClick={() => onSelectTown(null)} className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-2xl font-bold">&times;</button>
           </div>
           <div className="mt-2">
-            <span className="text-sm font-medium text-gray-300">Severity: {selectedTownData.severity}/10</span>
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Severity: {selectedTownData.severity}/10</span>
             <SeverityBar level={selectedTownData.severity} />
           </div>
-          <p className="text-sm text-gray-400 mt-3 italic">"{selectedTownData.description}"</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-3 italic">"{selectedTownData.description}"</p>
           
-          <div className="mt-5 pt-3 border-t border-gray-700">
-            <h4 className="flex items-center font-bold text-amber-300 mb-2">
+          <div className="mt-5 pt-3 border-t border-gray-200 dark:border-gray-700">
+            <h4 className="flex items-center font-bold text-amber-600 dark:text-amber-300 mb-2">
                 <TrendingUpIcon className="h-5 w-5 mr-2" />
                 Historical Trend
             </h4>
-            <p className="text-sm text-gray-300 ml-1">{selectedTownData.historicalTrend}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-300 ml-1">{selectedTownData.historicalTrend}</p>
           </div>
 
           <div className="mt-4">
-            <h4 className="flex items-center font-bold text-amber-300 mb-2">
+            <h4 className="flex items-center font-bold text-amber-600 dark:text-amber-300 mb-2">
                 <ChartBarIcon className="h-5 w-5 mr-2" />
                 Key Crime Statistics
             </h4>
             <ul className="space-y-2 text-sm">
               {selectedTownData.crimeStatistics.map((stat) => (
-                <li key={stat.type} className="flex justify-between items-center bg-gray-800 p-2 rounded-md">
-                  <span className="text-gray-300">{stat.type}</span>
-                  <span className="font-semibold text-gray-100 bg-gray-700 px-2 py-0.5 rounded">{stat.value}</span>
+                <li key={stat.type} className="flex justify-between items-center bg-gray-100 dark:bg-gray-800 p-2 rounded-md">
+                  <span className="text-gray-600 dark:text-gray-300">{stat.type}</span>
+                  <span className="font-semibold text-gray-800 dark:text-gray-100 bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded">{stat.value}</span>
                 </li>
               ))}
             </ul>
@@ -104,6 +112,21 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ hotspotData, selectedTownN
       
       <div className="mt-4">
         <h3 className="text-lg font-bold mb-3">Identified Hotspot Towns</h3>
+
+        {selectedCountyName && (
+        <div className="bg-gray-100 dark:bg-gray-700/50 p-2.5 rounded-lg mb-4 flex justify-between items-center border border-gray-200 dark:border-gray-600">
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Filtering by: <span className="font-bold text-red-500 dark:text-red-400">{selectedCountyName}</span>
+            </p>
+            <button
+            onClick={() => onSelectCounty(null)}
+            className="text-xs bg-gray-300 dark:bg-gray-600 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-full font-semibold transition-colors shadow"
+            title="Clear county filter"
+            >
+            CLEAR
+            </button>
+        </div>
+        )}
         
         <div className="relative mb-4">
             <span className="absolute inset-y-0 left-0 flex items-center pl-3">
@@ -114,7 +137,7 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ hotspotData, selectedTownN
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search for a town..."
-                className="w-full bg-gray-700 text-gray-200 rounded-lg py-2 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="w-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg py-2 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-red-500"
             />
         </div>
 
@@ -124,17 +147,17 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ hotspotData, selectedTownN
             <li
               key={town.townName}
               onClick={() => onSelectTown(town.townName)}
-              className={`p-3 rounded-lg cursor-pointer transition-all duration-200 ${selectedTownName === town.townName ? 'bg-red-900/50 ring-2 ring-red-500' : 'bg-gray-700 hover:bg-gray-600'}`}
+              className={`p-3 rounded-lg cursor-pointer transition-all duration-200 ${selectedTownName === town.townName ? 'bg-red-100 dark:bg-red-900/50 ring-2 ring-red-500' : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
             >
               <div className="flex justify-between items-center">
                 <span className="font-medium">{town.townName}</span>
-                <span className="text-sm font-bold text-red-400">{town.severity}/10</span>
+                <span className="text-sm font-bold text-red-600 dark:text-red-400">{town.severity}/10</span>
               </div>
             </li>
           ))
           ) : (
-            <li className="p-3 text-center text-gray-500">
-                No towns found matching your search.
+            <li className="p-3 text-center text-gray-400 dark:text-gray-500">
+                {selectedCountyName ? `No hotspots listed for ${selectedCountyName}.` : 'No towns found matching your search.'}
             </li>
           )}
         </ul>

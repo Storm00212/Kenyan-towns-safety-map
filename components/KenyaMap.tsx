@@ -1,25 +1,36 @@
 import React, { useMemo, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, GeoJSON, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
-import type { TownHotspotData } from '../types';
+import type { TownHotspotData, GeoJSONFeature, KenyaGeoJSON } from '../types';
 import { kenyaCountiesGeoJSON } from '../data/kenya-counties-simplified';
 
 interface KenyaMapProps {
   hotspotData: TownHotspotData[];
   onSelectTown: (townName: string | null) => void;
   selectedTownName: string | null;
+  theme: 'light' | 'dark';
+  onSelectCounty: (countyName: string | null) => void;
+  selectedCountyName: string | null;
 }
 
-const MapUpdater: React.FC<{ selectedTown?: TownHotspotData }> = ({ selectedTown }) => {
+const MapUpdater: React.FC<{ selectedTown?: TownHotspotData, selectedCountyName: string | null }> = ({ selectedTown, selectedCountyName }) => {
   const map = useMap();
   
   useEffect(() => {
     if (selectedTown) {
       map.flyTo([selectedTown.latitude, selectedTown.longitude], 12);
+    } else if (selectedCountyName) {
+        const countyFeature = (kenyaCountiesGeoJSON as KenyaGeoJSON).features.find(
+            f => f.properties.COUNTY === selectedCountyName
+        );
+        if (countyFeature) {
+            const geoJsonLayer = L.geoJSON(countyFeature);
+            map.flyToBounds(geoJsonLayer.getBounds());
+        }
     } else {
       map.flyTo([0.0236, 37.9062], 6);
     }
-  }, [selectedTown, map]);
+  }, [selectedTown, selectedCountyName, map]);
 
   return null;
 };
@@ -43,36 +54,95 @@ const selectedIcon = new L.Icon({
     shadowSize: [41, 41]
 });
 
-const countyStyle = {
-    color: '#4A5568', // gray-600
-    weight: 1,
-    opacity: 0.8,
-    fillColor: '#2D3748', // gray-800
-    fillOpacity: 0.1
-};
 
-
-export const KenyaMap: React.FC<KenyaMapProps> = ({ hotspotData, onSelectTown, selectedTownName }) => {
+export const KenyaMap: React.FC<KenyaMapProps> = ({ hotspotData, onSelectTown, selectedTownName, theme, onSelectCounty, selectedCountyName }) => {
   
   const selectedTownData = useMemo(() => {
     return hotspotData.find(t => t.townName === selectedTownName);
   }, [selectedTownName, hotspotData]);
+
+  const tileUrl = theme === 'dark'
+    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+    
+  const mapBackgroundColor = theme === 'dark' ? '#1A202C' : '#F7FAFC';
+
+  const countyStyle = useMemo(() => (theme === 'dark' ? {
+      color: '#4A5568', // gray-600
+      weight: 1,
+      opacity: 0.8,
+      fillColor: '#2D3748', // gray-800
+      fillOpacity: 0.1
+  } : {
+      color: '#A0AEC0', // gray-400
+      weight: 1,
+      opacity: 0.8,
+      fillColor: '#E2E8F0', // gray-200
+      fillOpacity: 0.3
+  }), [theme]);
+
+  const selectedCountyStyle = useMemo(() => (theme === 'dark' ? {
+      color: '#F56565', // red-400
+      weight: 2,
+      opacity: 1,
+      fillColor: '#4A5568', // gray-600
+      fillOpacity: 0.4
+  } : {
+      color: '#E53E3E', // red-600
+      weight: 2,
+      opacity: 1,
+      fillColor: '#CBD5E0', // gray-300
+      fillOpacity: 0.5
+  }), [theme]);
+  
+  const getCountyStyle = (feature?: GeoJSONFeature) => {
+    if (feature?.properties.COUNTY === selectedCountyName) {
+      return selectedCountyStyle;
+    }
+    return countyStyle;
+  };
+
+  const onEachCounty = (feature: GeoJSONFeature, layer: L.Layer) => {
+    layer.on({
+      click: () => {
+        onSelectCounty(feature.properties.COUNTY);
+      },
+      mouseover: (e) => {
+        const layer = e.target;
+        if (feature.properties.COUNTY !== selectedCountyName) {
+            layer.setStyle({
+                weight: 2,
+                color: theme === 'dark' ? '#E53E3E' : '#E53E3E',
+                fillOpacity: theme === 'dark' ? 0.3 : 0.5
+            });
+        }
+      },
+      mouseout: (e) => {
+         const layer = e.target;
+         if (feature.properties.COUNTY !== selectedCountyName) {
+            layer.setStyle(countyStyle);
+         }
+      }
+    });
+     layer.bindTooltip(feature.properties.COUNTY, { sticky: true, className: 'font-sans' });
+  };
   
   return (
     <MapContainer 
         center={[0.0236, 37.9062]} // Centered on Kenya
         zoom={6} 
-        style={{ height: '100%', width: '100%', backgroundColor: '#1F2937', borderRadius: '0.5rem' }}
+        style={{ height: '100%', width: '100%', backgroundColor: mapBackgroundColor, borderRadius: '0.5rem' }}
         scrollWheelZoom={true}
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+        url={tileUrl}
       />
       
       <GeoJSON 
         data={kenyaCountiesGeoJSON} 
-        style={countyStyle} 
+        style={getCountyStyle}
+        onEachFeature={onEachCounty}
       />
 
       {hotspotData.map((town: TownHotspotData) => (
@@ -94,12 +164,12 @@ export const KenyaMap: React.FC<KenyaMapProps> = ({ hotspotData, onSelectTown, s
           <Popup>
             <div className="text-sm font-sans">
                 <p className="font-bold text-base">{town.townName}</p>
-                <p className="text-gray-600">{town.description}</p>
+                <p className="text-gray-600 dark:text-gray-400">{town.description}</p>
             </div>
           </Popup>
         </Marker>
       ))}
-      <MapUpdater selectedTown={selectedTownData} />
+      <MapUpdater selectedTown={selectedTownData} selectedCountyName={selectedCountyName} />
     </MapContainer>
   );
 };
