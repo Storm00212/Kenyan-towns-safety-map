@@ -19,7 +19,7 @@ const responseSchema = {
   items: {
     type: Type.OBJECT,
     properties: {
-      townName: { type: Type.STRING, description: "Name of the dangerous town, city, or urban area." },
+      townName: { type: Type.STRING, description: "Name of the town, city, or urban area." },
       countyName: { type: Type.STRING, description: "The county where the town is located." },
       severity: { type: Type.NUMBER, description: "A danger severity score from 1 (least dangerous) to 10 (most dangerous)." },
       description: { type: Type.STRING, description: "Brief one-sentence explanation of the primary security risks (e.g., 'High rates of muggings and carjackings.')." },
@@ -46,24 +46,31 @@ const responseSchema = {
 export const fetchTownHotspotData = async (): Promise<TownHotspotData[]> => {
   try {
     const prompt = `
-      For EACH of the 47 counties in Kenya, identify up to THREE of the most significant towns or urban centers that are considered security hotspots.
-      This should result in a total of approximately 100-141 towns.
-      
-      Also, specifically ensure that Namanga town in Kajiado County is included in the analysis.
+      Generate a comprehensive list of over 150 security hotspots in Kenya, covering a wide range of towns and urban centers.
 
-      If a county is generally safe, you can provide just its main town with a low severity score. For counties with more widespread issues, provide two or three distinct hotspots.
-      Do not provide more than three towns for any single county.
+      The goal is to create a detailed and exhaustive dataset for a national security map.
+      
+      For EACH of the 47 counties in Kenya, identify multiple significant towns or urban centers that are considered security hotspots, or are notable for other security reasons (e.g., cross-border issues, specific types of crime).
+      
+      Your analysis must include:
+      - Major cities and their notorious neighborhoods (e.g., multiple entries for Nairobi, Mombasa, Kisumu).
+      - Key towns in high-risk regions known for banditry, terrorism, or ethnic clashes (e.g., North Rift, North Eastern, Lamu).
+      - Important border towns and the specific cross-border crimes they face (e.g., Namanga, Malaba, Moyale).
+      - Towns with moderate but persistent crime issues (e.g., growing satellite towns, agricultural centers).
+      - If a county is generally safe, still provide its main towns but assign them a low severity score and explain why they are relatively safe.
+
+      Specifically ensure the following towns are included in your analysis: Namanga, Bungoma, Kakamega, Mumias, Kiambu, and Karatina.
 
       For each identified town, provide:
       1. The name of the town.
-      2. The county it is in (ensure this matches one of the 47 official counties).
+      2. The county it is in.
       3. A danger severity score from 1 (very safe) to 10 (extremely dangerous).
       4. A brief, one-sentence explanation for the primary security risks.
       5. Its approximate latitude and longitude.
-      6. 2-3 key crime statistics (e.g., types of prevalent crime and their frequency).
-      7. A short, one-sentence summary of the security trend over the last 1-2 years.
+      6. 2-3 key crime statistics.
+      7. A short, one-sentence summary of the security trend.
 
-      Provide the output strictly as a single JSON array, matching the provided schema.
+      Provide the output strictly as a single JSON array, matching the provided schema. Do not include any commentary outside of the JSON.
     `;
 
     const response = await ai.models.generateContent({
