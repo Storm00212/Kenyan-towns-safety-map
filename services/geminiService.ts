@@ -1,6 +1,11 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { TownHotspotData } from '../types';
 
+// NOTE: This service is no longer called by the application at runtime.
+// It is kept here as a utility for developers to regenerate the static
+// data file located at `data/town-hotspots-data.ts`. The app now loads
+// the pre-generated data from that file for instant performance.
+
 const API_KEY = process.env.API_KEY;
 
 if (!API_KEY) {
@@ -41,13 +46,15 @@ const responseSchema = {
 export const fetchTownHotspotData = async (): Promise<TownHotspotData[]> => {
   try {
     const prompt = `
-      For EACH of the 47 counties in Kenya, identify the single most significant town or urban center that serves as a security hotspot.
-      This must result in exactly 47 entries, one for each county.
+      For EACH of the 47 counties in Kenya, identify up to THREE of the most significant towns or urban centers that are considered security hotspots.
+      This should result in a total of approximately 100-141 towns.
+      
+      Also, specifically ensure that Namanga town in Kajiado County is included in the analysis.
 
-      If a county is generally safe, select its largest or capital town, assign it a proportionately low severity score (e.g., 1-3), and describe the minor security concerns.
-      If a county has major security issues, select the town that best represents these challenges and score it accordingly.
+      If a county is generally safe, you can provide just its main town with a low severity score. For counties with more widespread issues, provide two or three distinct hotspots.
+      Do not provide more than three towns for any single county.
 
-      For each of the 47 towns, provide:
+      For each identified town, provide:
       1. The name of the town.
       2. The county it is in (ensure this matches one of the 47 official counties).
       3. A danger severity score from 1 (very safe) to 10 (extremely dangerous).
@@ -56,7 +63,7 @@ export const fetchTownHotspotData = async (): Promise<TownHotspotData[]> => {
       6. 2-3 key crime statistics (e.g., types of prevalent crime and their frequency).
       7. A short, one-sentence summary of the security trend over the last 1-2 years.
 
-      Provide the output strictly as a single JSON array containing 47 objects, matching the provided schema.
+      Provide the output strictly as a single JSON array, matching the provided schema.
     `;
 
     const response = await ai.models.generateContent({

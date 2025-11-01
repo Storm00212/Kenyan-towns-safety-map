@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { KenyaMap } from './components/KenyaMap';
 import { InfoPanel } from './components/InfoPanel';
-import { fetchTownHotspotData } from './services/geminiService';
-import type { TownHotspotData } from './types';
+import { TownHotspotData } from './types';
+import { preGeneratedHotspotData } from './data/town-hotspots-data'; // Import static data
 
 const MIN_PANEL_WIDTH = 320; 
 const DEFAULT_PANEL_WIDTH = 384; 
@@ -10,8 +10,6 @@ const MIN_PANEL_HEIGHT = 200;
 
 const App: React.FC = () => {
   const [hotspotData, setHotspotData] = useState<TownHotspotData[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedTown, setSelectedTown] = useState<string | null>(null);
   
   // State for desktop side panel
@@ -41,23 +39,8 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await fetchTownHotspotData();
-        setHotspotData(data);
-      } catch (err) {
-        if (err instanceof Error) {
-            setError(err.message);
-        } else {
-            setError("An unknown error occurred.");
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadData();
+    // Load data instantly from the pre-generated static file
+    setHotspotData(preGeneratedHotspotData);
   }, []);
 
   const handleSelectTown = (townName: string | null) => {
@@ -144,29 +127,6 @@ const App: React.FC = () => {
       
       <main ref={mainContainerRef} className="flex-grow flex flex-col lg:flex-row gap-0 overflow-hidden p-4 pt-0">
         <div className="flex-grow rounded-lg shadow-2xl relative min-h-0 min-w-0">
-          {loading && (
-             <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/80 z-20 rounded-lg">
-                <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-red-500"></div>
-                <p className="mt-4 text-lg">Generating Nationwide Security Analysis...</p>
-             </div>
-          )}
-          {error && (
-            <div className="absolute inset-0 flex items-center justify-center text-center bg-gray-900/90 p-4 rounded-lg z-20">
-                <div className="bg-gray-800 p-8 rounded-lg shadow-2xl border border-red-500 max-w-lg">
-                    <h3 className="text-2xl font-bold text-red-500 mb-3">Failed to Load Security Data</h3>
-                    <p className="text-gray-300 mb-6">{error}</p>
-                    <div className="text-left text-gray-400 text-sm">
-                        <h4 className="font-bold text-gray-200 mb-2">Troubleshooting Steps:</h4>
-                        <ul className="list-disc list-inside space-y-1">
-                            <li><strong>Check API Key:</strong> Ensure your Gemini API key is correctly configured.</li>
-                            <li><strong>Network Connection:</strong> Verify your internet connection is stable.</li>
-                            <li><strong>API Quotas:</strong> You may have exceeded your API usage limits. Check your Google AI Studio dashboard.</li>
-                            <li><strong>Try Again:</strong> There might be a temporary service issue. Please try refreshing the page.</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-          )}
           <KenyaMap 
             hotspotData={hotspotData}
             onSelectTown={handleSelectTown}
