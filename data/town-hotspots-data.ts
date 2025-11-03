@@ -62,6 +62,16 @@ export const preGeneratedHotspotData: TownHotspotData[] = [
     crimeStatistics: [{ type: "Pickpocketing", value: "Very High" }, { type: "Phone Snatching", value: "Daily" }, { type: "Confidence Tricks", value: "Common" }],
     historicalTrend: "While major crimes are policed, opportunistic petty crime is rampant."
   },
+  {
+    townName: "Karen",
+    countyName: "Nairobi",
+    severity: 6,
+    description: "Affluent suburb with a high risk of targeted residential burglaries and carjackings.",
+    latitude: -1.3218,
+    longitude: 36.7062,
+    crimeStatistics: [{ type: "Residential Burglary", value: "High Risk" }, { type: "Carjacking", value: "Occasional" }, { type: "Mugging", value: "Common" }],
+    historicalTrend: "Security is heavily reliant on private patrols, but targeted crime remains a persistent threat."
+  },
   // MOMBASA
   {
     townName: "Kisauni",
@@ -217,6 +227,16 @@ export const preGeneratedHotspotData: TownHotspotData[] = [
     longitude: 36.6558,
     crimeStatistics: [{ type: "Burglary", value: "High" }, { type: "Mugging", value: "Common" }, { type: "Livestock Theft", value: "Occasional" }],
     historicalTrend: "Urbanization has brought increased crime to this formerly quiet town."
+  },
+  {
+    townName: "Ongata Rongai",
+    countyName: "Kajiado",
+    severity: 7,
+    description: "Densely populated satellite town known for severe traffic, frequent muggings, and residential break-ins.",
+    latitude: -1.3964,
+    longitude: 36.7558,
+    crimeStatistics: [{ type: "Mugging", value: "Frequent" }, { type: "Residential Burglary", value: "High" }, { type: "Traffic-related Theft", value: "Common" }],
+    historicalTrend: "Rapid population growth has significantly strained infrastructure and security resources."
   },
   // MANDERA
   {
