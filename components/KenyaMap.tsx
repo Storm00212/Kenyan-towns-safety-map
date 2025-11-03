@@ -19,7 +19,9 @@ const MapUpdater: React.FC<{ selectedTown?: TownHotspotData, selectedCountyName:
   useEffect(() => {
     if (selectedTown) {
       map.flyTo([selectedTown.latitude, selectedTown.longitude], 12);
-    } else if (selectedCountyName) {
+    } else {
+      // This block is entered when selectedTown is null.
+      if (selectedCountyName) {
         const countyFeature = (kenyaCountiesGeoJSON as KenyaGeoJSON).features.find(
             f => f.properties.COUNTY === selectedCountyName
         );
@@ -27,8 +29,11 @@ const MapUpdater: React.FC<{ selectedTown?: TownHotspotData, selectedCountyName:
             const geoJsonLayer = L.geoJSON(countyFeature);
             map.flyToBounds(geoJsonLayer.getBounds());
         }
-    } else {
-      map.flyTo([0.0236, 37.9062], 6);
+      } else {
+        // This block is entered when selectedTown is null AND selectedCountyName is null.
+        // This matches the user's request to fly to the default view in this case.
+        map.flyTo([0.0236, 37.9062], 6);
+      }
     }
   }, [selectedTown, selectedCountyName, map]);
 
