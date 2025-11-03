@@ -35,6 +35,13 @@ const ThemeToggle: React.FC<{ theme: 'light' | 'dark'; onToggle: () => void }> =
   );
 };
 
+// Chevron icon for the mobile panel resizer
+const ChevronIcon: React.FC<{ collapsed: boolean }> = ({ collapsed }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 text-gray-500 dark:text-gray-400 transition-transform duration-300 ${!collapsed && 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+    </svg>
+);
+
 
 const App: React.FC = () => {
   const [hotspotData, setHotspotData] = useState<TownHotspotData[]>([]);
@@ -42,15 +49,16 @@ const App: React.FC = () => {
   const [selectedCounty, setSelectedCounty] = useState<string | null>(null);
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
+
   // State for desktop side panel
   const [panelWidth, setPanelWidth] = useState(DEFAULT_PANEL_WIDTH);
   const [isSidePanelCollapsed, setIsSidePanelCollapsed] = useState(false);
 
-  // State for mobile bottom panel
-  const [panelHeight, setPanelHeight] = useState(window.innerHeight / 2.5);
-  const [isBottomPanelCollapsed, setIsBottomPanelCollapsed] = useState(false);
+  // State for mobile bottom panel. Defaults to collapsed on mobile.
+  const [panelHeight, setPanelHeight] = useState(window.innerHeight / 3);
+  const [isBottomPanelCollapsed, setIsBottomPanelCollapsed] = useState(!isDesktop);
 
-  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
   
   const mainContainerRef = useRef<HTMLElement>(null);
 
@@ -69,10 +77,10 @@ const App: React.FC = () => {
   useEffect(() => {
     const handleResize = () => {
       const desktop = window.innerWidth >= 1024;
-      if (!desktop) {
-        setIsSidePanelCollapsed(false); // Reset side panel on mobile
-      } else {
+      if (desktop) {
         setIsBottomPanelCollapsed(false); // Reset bottom panel on desktop
+      } else {
+        setIsSidePanelCollapsed(false); // Reset side panel on mobile
       }
       setIsDesktop(desktop);
     };
@@ -87,11 +95,13 @@ const App: React.FC = () => {
 
   const handleSelectTown = (townName: string | null) => {
     setSelectedTown(townName);
-    // When deselecting a town by clicking the close button, also clear the county
-    // filter. This ensures the map zooms out to the full country view,
-    // mimicking the behavior of the 'CLEAR' filter button as requested.
     if (townName === null) {
       setSelectedCounty(null);
+    } else {
+      // If a town is selected on mobile, expand the bottom panel
+      if (!isDesktop) {
+        setIsBottomPanelCollapsed(false);
+      }
     }
   };
 
@@ -175,7 +185,7 @@ const App: React.FC = () => {
 
   return (
     <div className="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-white h-screen flex flex-col font-sans">
-      <header className="relative text-center p-4 flex-shrink-0">
+      <header className="relative text-center p-2 md:p-4 flex-shrink-0">
         <div>
             <h1 className="text-3xl md:text-4xl font-bold text-red-600 dark:text-red-500 tracking-wider">
             Kenya Security Analysis
@@ -208,7 +218,7 @@ const App: React.FC = () => {
           className={`flex lg:hidden flex-shrink-0 items-center justify-center h-4 bg-gray-300 dark:bg-gray-700 hover:bg-red-500 transition-colors duration-200 ${isBottomPanelCollapsed ? 'cursor-pointer' : 'cursor-row-resize'}`}
           title={isBottomPanelCollapsed ? "Show details" : "Collapse panel / Drag to resize"}
         >
-          <div className="w-10 h-1 bg-gray-400 dark:bg-gray-500/50 rounded-full"/>
+          <ChevronIcon collapsed={isBottomPanelCollapsed} />
         </div>
 
         {/* Vertical Resizer (Desktop) */}
