@@ -37,6 +37,19 @@ const MapUpdater: React.FC<{ selectedTown?: TownHotspotData, selectedCountyName:
     }
   }, [selectedTown, selectedCountyName, map]);
 
+  useEffect(() => {
+    // This is a robust fix for a common race condition where map tiles don't
+    // load because the map container's dimensions haven't been calculated yet.
+    // By invalidating the size after a brief delay, we force the map to
+    // re-render correctly once the layout is stable.
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [map]);
+
+
   return null;
 };
 
