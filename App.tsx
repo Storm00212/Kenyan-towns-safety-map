@@ -87,6 +87,12 @@ const App: React.FC = () => {
 
   const handleSelectTown = (townName: string | null) => {
     setSelectedTown(townName);
+    // When deselecting a town by clicking the close button, also clear the county
+    // filter. This ensures the map zooms out to the full country view,
+    // mimicking the behavior of the 'CLEAR' filter button as requested.
+    if (townName === null) {
+      setSelectedCounty(null);
+    }
   };
 
   const handleSelectCounty = (countyName: string | null) => {
