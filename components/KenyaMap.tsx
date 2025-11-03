@@ -13,9 +13,15 @@ interface KenyaMapProps {
   selectedCountyName: string | null;
 }
 
+/**
+ * MapUpdater component: Internal component that handles map view updates and sizing fixes.
+ * Uses the useMap hook to access the Leaflet map instance and perform flyTo animations
+ * when towns or counties are selected. Also fixes tile loading issues by invalidating map size.
+ */
 const MapUpdater: React.FC<{ selectedTown?: TownHotspotData, selectedCountyName: string | null }> = ({ selectedTown, selectedCountyName }) => {
   const map = useMap();
-  
+
+  // Effect to fly to selected town, county, or default view based on selection state
   useEffect(() => {
     if (selectedTown) {
       map.flyTo([selectedTown.latitude, selectedTown.longitude], 12);
@@ -37,6 +43,7 @@ const MapUpdater: React.FC<{ selectedTown?: TownHotspotData, selectedCountyName:
     }
   }, [selectedTown, selectedCountyName, map]);
 
+  // Effect to fix map tile loading issues by invalidating size after component mounts
   useEffect(() => {
     // This is a robust fix for a common race condition where map tiles don't
     // load because the map container's dimensions haven't been calculated yet.
@@ -53,7 +60,8 @@ const MapUpdater: React.FC<{ selectedTown?: TownHotspotData, selectedCountyName:
   return null;
 };
 
-// Custom icons
+// Custom marker icons for town hotspots
+// Default red marker for unselected towns
 const defaultIcon = new L.Icon({
     iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
@@ -63,6 +71,7 @@ const defaultIcon = new L.Icon({
     shadowSize: [41, 41]
 });
 
+// Yellow marker for the currently selected town
 const selectedIcon = new L.Icon({
     iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png',
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
@@ -73,18 +82,27 @@ const selectedIcon = new L.Icon({
 });
 
 
+/**
+ * KenyaMap component: Main map component that renders the interactive Kenya map.
+ * Combines tile layers, county boundaries, town markers, and handles all map interactions.
+ * Uses memoized values for performance and theme-based styling.
+ */
 export const KenyaMap: React.FC<KenyaMapProps> = ({ hotspotData, onSelectTown, selectedTownName, theme, onSelectCounty, selectedCountyName }) => {
-  
+
+  // Memoized selected town data for efficient re-renders
   const selectedTownData = useMemo(() => {
     return hotspotData.find(t => t.townName === selectedTownName);
   }, [selectedTownName, hotspotData]);
 
+  // Dynamic tile URL based on theme (dark/light map tiles)
   const tileUrl = theme === 'dark'
     ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
     : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-    
+
+  // Background color for the map container matching the theme
   const mapBackgroundColor = theme === 'dark' ? '#1A202C' : '#F7FAFC';
 
+  // Default county boundary styling based on theme
   const countyStyle = useMemo(() => (theme === 'dark' ? {
       color: '#4A5568', // gray-600
       weight: 1,
@@ -99,6 +117,7 @@ export const KenyaMap: React.FC<KenyaMapProps> = ({ hotspotData, onSelectTown, s
       fillOpacity: 0.3
   }), [theme]);
 
+  // Highlighted styling for selected county
   const selectedCountyStyle = useMemo(() => (theme === 'dark' ? {
       color: '#F56565', // red-400
       weight: 2,
@@ -112,7 +131,8 @@ export const KenyaMap: React.FC<KenyaMapProps> = ({ hotspotData, onSelectTown, s
       fillColor: '#CBD5E0', // gray-300
       fillOpacity: 0.5
   }), [theme]);
-  
+
+  // Function to determine county styling based on selection state
   const getCountyStyle = (feature?: GeoJSONFeature) => {
     if (feature?.properties.COUNTY === selectedCountyName) {
       return selectedCountyStyle;
@@ -120,6 +140,8 @@ export const KenyaMap: React.FC<KenyaMapProps> = ({ hotspotData, onSelectTown, s
     return countyStyle;
   };
 
+  // Function to attach event handlers to county GeoJSON layers
+  // Handles click for selection, mouseover/mouseout for hover effects, and tooltips
   const onEachCounty = (feature: GeoJSONFeature, layer: L.Layer) => {
     layer.on({
       click: () => {
@@ -145,27 +167,31 @@ export const KenyaMap: React.FC<KenyaMapProps> = ({ hotspotData, onSelectTown, s
      layer.bindTooltip(feature.properties.COUNTY, { sticky: true, className: 'font-sans' });
   };
   
+  // Render the map container with all layers and components
   return (
-    <MapContainer 
+    <MapContainer
         center={[0.0236, 37.9062]} // Centered on Kenya
-        zoom={6} 
+        zoom={6}
         style={{ height: '100%', width: '100%', backgroundColor: mapBackgroundColor, borderRadius: '0.5rem' }}
         scrollWheelZoom={true}
     >
+      {/* Base tile layer with theme-based URL */}
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
         url={tileUrl}
       />
-      
-      <GeoJSON 
-        data={kenyaCountiesGeoJSON} 
+
+      {/* County boundaries as GeoJSON layer */}
+      <GeoJSON
+        data={kenyaCountiesGeoJSON}
         style={getCountyStyle}
         onEachFeature={onEachCounty}
       />
 
+      {/* Town hotspot markers */}
       {hotspotData.map((town: TownHotspotData) => (
-        <Marker 
-          key={town.townName} 
+        <Marker
+          key={town.townName}
           position={[town.latitude, town.longitude]}
           icon={selectedTownName === town.townName ? selectedIcon : defaultIcon}
           eventHandlers={{
@@ -187,6 +213,7 @@ export const KenyaMap: React.FC<KenyaMapProps> = ({ hotspotData, onSelectTown, s
           </Popup>
         </Marker>
       ))}
+      {/* Component to handle map view updates */}
       <MapUpdater selectedTown={selectedTownData} selectedCountyName={selectedCountyName} />
     </MapContainer>
   );
